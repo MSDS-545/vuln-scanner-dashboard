@@ -1,0 +1,2 @@
+CPU_LIMIT = 1
+MEMORY_LIMIT = "256m"

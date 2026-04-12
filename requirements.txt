@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+flask
+pydantic
+python-multipart
+streamlit
+pandas
+plotly
+sqlalchemy
+psycopg2-binary
+python-dotenv
+reportlab
+requests
+pytest
