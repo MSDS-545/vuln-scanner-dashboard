@@ -4,3 +4,9 @@ uploads/
 *.pyc
 *.log
 venv/
+source/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
