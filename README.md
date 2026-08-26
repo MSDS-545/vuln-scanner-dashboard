@@ -1,303 +1,353 @@
 # Vulnerability Scanner & Code Safety Dashboard
 
-A secure code scanning platform that detects common vulnerabilities in Python code using OWASP-inspired rules.
+A web-based security scanning application for analyzing Python code and reviewing detected vulnerabilities alongside CICIDS dataset-based security data.
 
-The system analyzes uploaded Python code using rule-based static analysis, detects security vulnerabilities aligned with OWASP risks, and presents results through a web dashboard with actionable remediation insights.
+The project combines rule-based static analysis with a dashboard workflow for reviewing security findings. It includes a FastAPI service, an optional Flask worker, PostgreSQL storage, and a Streamlit dashboard.
 
-This project simulates real-world DevSecOps tools, similar to:
+## Overview
 
-Static analyzers (Bandit)
-Code scanners (SonarQube)
-Security platforms (Snyk)
+The scanner checks uploaded Python files for common security issues such as:
 
-It demonstrates:
+- Unsafe functions including `eval()` and `exec()`
+- SQL injection patterns
+- Hardcoded secrets
+- Insecure deserialization
+- Unvalidated user input
+- Other OWASP-inspired rule violations
 
-Secure software development
-Automated vulnerability detection
-Cybersecurity + software engineering integration
+The application also works with the CICIDS dataset for security analysis and testing. CICIDS data can be used to support traffic-based security experiments, attack-category analysis, visualization, and validation of the broader security workflow.
 
-How Scanning Works
+## Features
 
-1. User uploads a Python file
-2. File is validated (.py only)
-3. Code is scanned using rule-based detectors:
-   - Unsafe functions (eval, exec)
-   - SQL injection patterns
-   - Hardcoded secrets
-   - Insecure deserialization
-4. Results are returned with:
-   - vulnerability type
-   - severity
-   - remediation suggestion
-5. Dashboard visualizes results
-
-
-
-Features:
-- Static vulnerability detection
-- Secure file validation
-- Sandboxed scanning
+- Python static vulnerability scanning
+- File-type validation for uploaded `.py` files
+- Rule-based security checks
+- CICIDS dataset support
 - PostgreSQL scan history
-- Streamlit dashboard visualization
-- Automated vulnerability reporting
+- Streamlit dashboard
+- Plotly-based visualization
+- JSON and PDF reporting
+- Unit and API tests
+- Docker-based sandbox components
 
-Architecture:
-FastAPI API → Flask scanning worker → PostgreSQL → Streamlit Dashboard
+## Architecture
 
-User Upload (Streamlit)
-        ↓
-FastAPI Backend (API)
-        ↓
+```text
+Streamlit Dashboard
+        |
+        v
+FastAPI Service
+        |
+        v
 Scanner Service
-        ↓
-Flask Worker (optional processing layer)
-        ↓
-Rule-Based Scanners
-        ↓
-Results → Dashboard + Reports
+        |
+        +--------------------+
+        |                    |
+        v                    v
+Rule-Based Scanners     Flask Worker
+        |                    |
+        +---------+----------+
+                  |
+                  v
+             PostgreSQL
+                  |
+                  v
+          Reports / Dashboard
+```
 
-Root Files
+The Flask worker is an optional execution layer. Core scanning logic is handled through the scanner service and security rule modules.
 
+## Project Structure
 
-README.md
-Explains the project
-Contains setup + run instructions
+```text
+.
+├── README.md
+├── requirements.txt
+├── docker-compose.yml
+├── .env
+├── .gitignore
+│
+├── backend/
+│   ├── fastapi_app/
+│   │   ├── main.py
+│   │   ├── routers/
+│   │   ├── services/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   └── config/
+│   │
+│   ├── flask_worker/
+│   │   ├── worker.py
+│   │   ├── sandbox_executor.py
+│   │   └── rule_engine.py
+│   │
+│   └── scanners/
+│       ├── unsafe_function_detector.py
+│       ├── injection_detector.py
+│       ├── validation_checker.py
+│       └── owasp_rules.py
+│
+├── dashboard/
+│   ├── app.py
+│   ├── pages/
+│   └── utils/
+│
+├── database/
+│   ├── schema.sql
+│   └── seed_data.sql
+│
+├── sandbox/
+│   ├── Dockerfile
+│   ├── sandbox_runner.py
+│   └── resource_limits.py
+│
+├── logging/
+│   ├── audit_logger.py
+│   └── security_logs.py
+│
+├── reports/
+│   ├── pdf_report.py
+│   └── json_report.py
+│
+├── tests/
+│   ├── test_scanner.py
+│   ├── test_api.py
+│   └── test_rules.py
+│
+└── docs/
+    ├── architecture.md
+    ├── threat_model.md
+    └── usage.md
+```
 
-requirements.txt
-Lists all Python dependencies:
-FastAPI → backend API
-Flask → worker
-Streamlit → dashboard
-SQLAlchemy → database
-Plotly/Pandas → visualization
+## CICIDS Dataset
 
+This project uses CICIDS data as part of its cybersecurity analysis workflow.
 
-docker-compose.yml
-Defines multi-service environment
-Spins up:
-API
-Worker
-Dashboard
-PostgreSQL
+Depending on the experiment, CICIDS records can be used to:
 
+- Analyze benign and malicious network traffic
+- Compare attack categories
+- Test detection and classification workflows
+- Generate dashboard summaries and visualizations
+- Evaluate security-processing components against labeled network traffic
 
-.env
-Stores environment variables (DB credentials)
+Place the CICIDS dataset in the location expected by the application or update the configured dataset path.
 
-.gitignore
-Prevents committing:
-venv
-logs
-uploads
+A recommended local structure is:
 
+```text
+data/
+└── cicids/
+    ├── <dataset-file-1>.csv
+    ├── <dataset-file-2>.csv
+    └── ...
+```
 
-Backend (Core Logic)
+Do not commit large CICIDS dataset files to the repository unless the repository is specifically configured to store them.
 
-backend/fastapi_app/
-main.py
-Entry point for FastAPI
-Registers all API routes
-Starts the backend service
+## Scanner Components
 
-routers/ (API Endpoints)
-scan_router.py
-Handles file upload (/scan)
-Calls scanner service
-Returns vulnerabilities
+### FastAPI Service
 
-auth_router.py
-Handles authentication (placeholder)
-Returns token (demo)
+`backend/fastapi_app/main.py` is the FastAPI entry point.
 
-report_router.py
-Provides scan reports (/report)
-Connects to reporting service
+The API routes include components for:
 
+- File scanning
+- Scan reports
+- Authentication placeholders
+- Scanner service integration
 
-services/ (Business Logic)
+### Scanner Service
 
-scanner_service.py
-Core orchestrator
-Calls all scanner modules:
-unsafe functions
-injection detection
-validation checks
-OWASP rules
+`backend/fastapi_app/services/scanner_service.py` coordinates the scanning workflow and calls the individual rule modules.
 
-file_validator.py
-Ensures only .py files are uploaded
-Prevents malicious file types
+### File Validation
 
-report_service.py
-Generates scan summaries
-Returns structured output (JSON)
+`file_validator.py` checks uploaded files before they are sent through the scanner.
 
-models/ (Database Models)
-scan_model.py
-Defines scan table structure
-Stores vulnerability results
+The current workflow is intended for Python source files.
 
-user_model.py
-Defines user table
-Used for authentication
+### Rule-Based Scanners
 
-schemas/ (Data Validation)
-scan_schema.py
-Defines API response format for scans
-auth_schema.py
-Defines login request structure
+The scanner modules include checks for:
 
-config/
-database.py
-Sets up database connection (SQLAlchemy)
-
-settings.py
-Loads environment variables from .env
-
-
-Flask Worker (Execution Layer)
-backend/flask_worker/
-worker.py
-Runs Flask server (port 5001)
-Acts as background scanner service
-Can simulate async processing
-
-sandbox_executor.py
-Placeholder for secure execution
-Intended to run code safely in isolation
-rule_engine.py
-Calls scanner rules (OWASP detection)
-Connects worker to scanning logic
-
-Scanners (Security Detection Engine)
-
-backend/scanners/
-unsafe_function_detector.py
-Detects:
+```text
 eval()
 exec()
-Flags unsafe execution
+pickle.loads()
+SQL query construction
+unvalidated input
+other OWASP-inspired patterns
+```
 
-injection_detector.py
-Detects:
-SQL injection patterns
-Looks for string concatenation in queries
-validation_checker.py
-Detects:
-unvalidated user input (input())
-owasp_rules.py
-Detects OWASP-style issues:
-insecure deserialization (pickle.loads)
-unsafe operations
-These files collectively form the static analysis engine
+These rules are static checks. They identify patterns that may require security review; they do not prove that a vulnerability is exploitable.
 
-Dashboard (Frontend UI)
+## Flask Worker
+
+The optional Flask worker runs separately from the FastAPI service:
+
+```text
+backend/flask_worker/worker.py
+```
+
+It can be used as an additional processing layer for scanner tasks and sandbox-related functionality.
+
+## Dashboard
+
+The Streamlit dashboard is located in:
+
+```text
 dashboard/
-app.py
-Main Streamlit app
-Uploads file
-Calls API
-Stores results in session
+```
 
-pages/
-overview.py
-Displays:
-total vulnerabilities
-severity distribution
+The dashboard provides:
 
-scan_results.py
-Shows detailed table of vulnerabilities
-vulnerability_map.py
-Visualizes vulnerabilities (charts)
-remediation_guide.py
-Provides fixes and recommendations
+- Scan submission
+- Vulnerability summaries
+- Detailed findings
+- Severity visualization
+- CICIDS-related security visualizations where configured
+- Remediation information
 
-utils/
-api_client.py
-Handles API calls from dashboard
-visualization.py
-Creates charts (Plotly)
+## Database
 
-Database
+PostgreSQL is used for scan-history and application data.
+
+Database initialization files are stored under:
+
+```text
 database/
-schema.sql
-Defines database tables
-seed_data.sql
-Inserts sample data
+```
 
-Sandbox (Security Layer)
-sandbox/
-Dockerfile
-Creates isolated container for safe execution
-sandbox_runner.py
-Runs code inside sandbox
-resource_limits.py
-Defines CPU/memory restrictions
-Prevents malicious code execution
+Environment-specific database credentials should be placed in `.env` and should not be committed to source control.
 
-Logging
-logging/
-audit_logger.py
-Logs system events (scans, uploads)
-security_logs.py
-Logs detected vulnerabilities
+## Setup
 
-Reports
-reports/
-pdf_report.py
-Generates PDF vulnerability reports
-json_report.py
-Generates JSON reports
+Clone the repository:
 
-Tests
-tests/
-test_scanner.py
-Tests detection logic
-test_api.py
-Tests API endpoints
-test_rules.py
-Tests rule engine
-
-Docs
-docs/
-architecture.md
-Describes system architecture
-threat_model.md
-Lists potential security threats
-usage.md
-Explains how to use the system
-
-
-steps: 
-
-Run to get repo:
+```bash
 git clone <repo-url>
 cd vuln-scanner-dashboard
+```
 
+Create a virtual environment:
 
-Run code in terminal: 
+```bash
 python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
+```
 
+Activate it on macOS or Linux:
+
+```bash
+source venv/bin/activate
+```
+
+On Windows:
+
+```powershell
+venv\Scripts\activate
+```
+
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
 
+## Environment Variables
+
+Create a `.env` file if one is not already present.
+
+Use the configuration values required by the application, such as database connection information and dataset paths.
+
+Example:
+
+```env
+DATABASE_URL=<database-connection-string>
+CICIDS_DATA_PATH=/absolute/path/to/data/cicids
+```
+
+Use the variable names expected by the project configuration files if they differ from this example.
+
+## Run the Application
+
+### Start FastAPI
+
+```bash
 uvicorn backend.fastapi_app.main:app --reload
+```
 
-In another terminal run: 
-source venv/bin/activate   # Windows: venv\Scripts\activate
-Worker
+### Start the Flask Worker
+
+Open another terminal, activate the environment, and run:
+
+```bash
 python backend/flask_worker/worker.py
+```
 
+### Start the Streamlit Dashboard
 
-In another terminal run: 
+Open another terminal, activate the environment, and run:
 
-source venv/bin/activate   # Windows: venv\Scripts\activate
+```bash
 streamlit run dashboard/app.py
+```
 
-Open:
+Then open:
+
+```text
 http://localhost:8501
+```
 
+## Running Tests
 
+Run the test suite from the repository root:
 
+```bash
+pytest
+```
 
+For verbose output:
 
+```bash
+pytest -v
+```
+
+The tests cover scanner behavior, API routes, and security rules.
+
+## Reports
+
+The reporting modules support structured scan output.
+
+Available report components include:
+
+```text
+reports/pdf_report.py
+reports/json_report.py
+```
+
+Reports can include detected issue type, severity, and remediation guidance.
+
+## Security Notes
+
+Uploaded files should be treated as untrusted input.
+
+The project includes validation and sandbox-related components, but local development configurations should not be treated as production-grade isolation without additional hardening.
+
+Recommended production controls include:
+
+- Strict upload limits
+- File-content validation
+- Authentication and authorization
+- Restricted execution privileges
+- Container isolation
+- CPU and memory limits
+- Centralized audit logging
+- Secret management
+- Database access controls
+
+## Development Notes
+
+This repository is intended for cybersecurity and software-security experimentation. The CICIDS dataset provides network-security data, while the scanner components evaluate source-code patterns. These are separate analysis inputs within the same security application and should not be interpreted as equivalent detection methods.
